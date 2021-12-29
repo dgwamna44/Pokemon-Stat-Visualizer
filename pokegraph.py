@@ -10,7 +10,7 @@ types = ["All","Normal", "Grass", "Fire", "Water", "Electric", "Dark","Bug","Fai
          "Steel","Poison","Rock","Ghost","Dragon","Ice","Ground","Psychic"]
 types.sort()
 
-def type_to_color(typ):
+def type_to_color(typ):  #generate a color based on selected type to change background of selection screen
     if typ == "Normal":
         return "beige"
     elif typ == "Grass":
@@ -48,19 +48,19 @@ def type_to_color(typ):
     elif typ == "Psychic":
         return "fuchsia"
 
-def filter_names(typ):
+def filter_names(typ): # filters list of names based on type. 
     if typ.get() == 'All':
         names = df['name'].values.tolist()
     else:
         names = df['name'][(df.type_1 == typ.get()) | (df.type_2 == typ.get())].values.tolist()
-        dropdown.config(bg=type_to_color(typ.get()))
+        dropdown.config(bg=type_to_color(typ.get())) # Generates list from either type_1 or type_2
     names.sort()
     combobox["values"] = names
     combobox.current(0)
 
 def get_graph(var):
     plt.clf()
-    angles = [n / float(6) * 2 * 3.14159 for n in range(6)]
+    angles = [n / float(6) * 2 * 3.14159 for n in range(6)] 
     angles += angles[:1]
     ax = plt.subplot(1,1,1, polar = True)
     ax.set_theta_offset(3.14159 / 2)
@@ -78,10 +78,11 @@ def get_graph(var):
     capped_values = [d if d < 150 else 150 for d in capped_values]
     clr = type_to_color(temp2)
 
-    def add_stat_rating(hp_stat, values):
+    def add_stat_rating(hp_stat, values): # applies a rating based on stat
         labels = []
         string = ""
-        if hp_stat >= 130:
+        if hp_stat >= 130: # HP stat is slightly positively skewed compared to the other stats, hence
+            # the different rating scale
             string = 'S+ '
         elif hp_stat < 130 and hp_stat >= 120:
             string = 'S '
@@ -167,7 +168,7 @@ def get_graph(var):
     ax.plot(angles, capped_values, linewidth=1, color='lightgreen', alpha=.5, linestyle='solid')
     ax.fill(angles, capped_values, color='lightgreen', alpha = .6)
     plt.title(var.get(), fontsize=20)
-
+    plt.savefig(var.get())
     plt.show()
     
 root = Tk()
