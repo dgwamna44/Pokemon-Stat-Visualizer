@@ -6,7 +6,10 @@ import numpy as np
 import tkinter.ttk as ttk
 from tkinter import *
 
-types = ["All","Normal", "Grass", "Fire", "Water", "Electric", "Dark","Bug","Fairy","Fighting","Flying",
+active_type = "None"
+active_stat = "None"
+
+types = ["Normal", "Grass", "Fire", "Water", "Electric", "Dark","Bug","Fairy","Fighting","Flying",
          "Steel","Poison","Rock","Ghost","Dragon","Ice","Ground","Psychic"]
 types.sort()
 
@@ -48,16 +51,36 @@ def type_to_color(typ):  #generate a color based on selected type to change back
     elif typ == "Psychic":
         return "fuchsia"
 
-def filter_names(typ): # filters list of names based on type. 
-    if typ.get() == 'All':
-        names = df['name'].values.tolist()
+def filter_names(typ): # filters list of names based on type.
+    global master_list
+    global active_type
+    global active_stat
+    active_type = typ.get()
+    if active_stat != "None":
+        master_list = df.sort_values(active_stat, ascending=False)['name'][(df.type_1 == active_type) | (df.type_2 == active_type)].values.tolist()
     else:
-        names = df['name'][(df.type_1 == typ.get()) | (df.type_2 == typ.get())].values.tolist()
-        dropdown.config(bg=type_to_color(typ.get())) # Generates list from either type_1 or type_2
-    names.sort()
-    combobox["values"] = names
+        master_list = df['name'][(df.type_1 == typ.get()) | (df.type_2 == typ.get())].values.tolist()
+    dropdown.config(bg=type_to_color(typ.get())) # Generates list from either type_1 or type_2
+    filter_type.config(bg=type_to_color(typ.get()))
+    sort_by_stat.config(bg=type_to_color(typ.get()))
+    master_list.sort()
+    combobox["values"] = master_list
     combobox.current(0)
 
+def sort_stat(stat):
+    global active_type
+    global active_stat
+    active_stat = stat.get()
+    if active_type != "None":
+        master_list = df.sort_values(active_stat, ascending=False)['name'][(df.type_1 == active_type) | (df.type_2 == active_type)].values.tolist()
+    else:
+        master_list = df.sort_values(active_stat, ascending=False)['name'].values.tolist()
+    print("Active Stat: ", active_stat)
+    print("Active Type: ",active_type)
+    combobox["values"] = master_list
+    combobox.current(0)
+
+    
 def get_graph(var):
     plt.clf()
     angles = [n / float(6) * 2 * 3.14159 for n in range(6)] 
@@ -175,14 +198,19 @@ root = Tk()
 root.withdraw()
 dropdown = Toplevel(root)
 dropdown.geometry('600x600')
+dropdown.config(bg='white')
 s= ttk.Style()
 s.theme_use('alt')
-variable = tk.StringVar(root)
+name = tk.StringVar(root)
+show_stats = tk.BooleanVar(root)
+show_types = tk.BooleanVar(root)
 type_variable = tk.StringVar(root)
+stat_variable = tk.StringVar(root)
 type_variable.set("All")
 
 df = pd.read_csv('pokemon.csv')
 font_type = ("Sylfaen",24,"bold")
+font_type_stat = ("Sylfaen", 20)
 
 df = df.rename(columns={'hp':'HP',
                         'attack':'Attack',
@@ -191,28 +219,79 @@ df = df.rename(columns={'hp':'HP',
                         'sp_attack':'Sp. Attack',
                         'sp_defense':'Sp. Defense'})
 
-names = df['name'].values.tolist()
-names.sort()
+master_list = df['name'].values.tolist()
+master_list.sort()
 
-combobox = ttk.Combobox(dropdown, state='readonly', values = names, width = 30, height = 10, font=font_type, textvariable = variable)
+combobox = ttk.Combobox(dropdown, state='readonly', values = master_list, width = 30, height = 10, font=font_type, textvariable = name)
 combobox.current(0)
 combobox.pack()
 root.option_add('*TCombobox*Listbox.font', font_type)
 
-graph = tk.Button(dropdown, bg='red', text="Get Graph", font=font_type, width=30, command=lambda: get_graph(variable)).pack()
+graph = tk.Button(dropdown, bg='red', text="Get Graph", font=font_type, width=30, command=lambda: get_graph(name)).pack()
 stats = ["HP", "Attack", "Defense", "Speed","Sp. Defense", "Sp. Attack"]
 
 typebox = ttk.Combobox(dropdown, state='readonly', values = types, width = 30, height = 10, font=font_type, textvariable = type_variable)   
-typebox.current(0)
-typebox.pack()
 root.option_add('*TCombobox*Listbox.font', font_type)
 
-filter_by_type = tk.Button(dropdown, bg='skyblue', text="Filter by Type", font=font_type, width=30, command=lambda: filter_names(type_variable)).pack()
+filter_by_type = tk.Button(dropdown, bg='skyblue', text="Filter by Type", font=font_type, width=30, command=lambda: filter_names(type_variable))
 
-get_graph(variable)
+def show_statbox():
+    global active_stat
+    global active_type
+    if show_stats.get():
+        statbox.pack()
+        statbox.current(0)
+        active_stat = stat_variable.get()
+        statbox_button.pack()
+    else:
+        statbox.pack_forget()
+        statbox_button.pack_forget()
+        active_stat = "None"
+        if active_type != 'None':
+            master_list = df['name'][(df.type_1 == active_type) | (df.type_2 == active_type)] .values.tolist()
+        else:
+            master_list = df['name'].values.tolist()
+        combobox['values'] = master_list
+    print(active_stat, active_type)
+
+def show_typebox():
+    global active_type
+    global active_stat
+    if show_types.get():
+        typebox.pack()
+        typebox.current(0)
+        active_type = type_variable.get()
+        filter_by_type.pack()
+    else: #reset to unfiltered list
+        typebox.pack_forget()
+        filter_by_type.pack_forget()
+        active_type = "None"
+        if active_stat != "None":
+            master_list = df.sort_values(active_stat, ascending=False)['name'].values.tolist()
+        else:
+            master_list = df['name'].values.tolist()
+        master_list.sort()
+        combobox["values"] = master_list
+        combobox.current(0)
+        filter_type.config(bg='white')
+        sort_by_stat.config(bg='white')
+        dropdown.config(bg='white')
+    print(active_stat, active_type)
+
+        
+filter_type = tk.Checkbutton(dropdown, text="Filter By Types", font=font_type_stat, command=show_typebox, variable=show_types, onvalue=1, offvalue=0, bg='white')
+filter_type.pack()
+
+sort_by_stat = tk.Checkbutton(dropdown, text="Sort By Stats", font=font_type_stat, command=show_statbox, variable=show_stats, onvalue=1, offvalue=0, bg='white')
+sort_by_stat.pack()
+
+statbox = ttk.Combobox(dropdown, state='readonly', values = stats, width = 30, height = 10, font=font_type, textvariable = stat_variable)   
+statbox.current(0)
+root.option_add('*TCombobox*Listbox.font', font_type)
+statbox_button = tk.Button(dropdown, bg='lightgreen', text="Sort", font=font_type, width=30, command=lambda: sort_stat(stat_variable))
+
+get_graph(name)
 root.mainloop()
-
-
 
 
 
